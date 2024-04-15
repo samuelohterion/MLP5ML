@@ -6,6 +6,52 @@
 
 using namespace alg;
 
+// class ActivationFunction {
+
+//     public:
+
+//         ActivationFunction(STR const &pID) :
+//         ID(pID) {
+
+//         }
+
+//         virtual
+//         ~ActivationFunction() = 0;
+
+//     public:
+
+//         STR const 
+//         ID;
+
+//         D
+//         fun,
+//         dfun;
+// };
+
+// class LossFunction {
+
+//     public:
+
+//         LossFunction(STR const &pID) :
+//         ID(pID) {
+
+//         }
+
+//         virtual
+//         ~LossFunction() = 0;
+
+//     public:
+
+//         STR const 
+//         ID;
+
+//         D
+//         fun,
+//         dfun;
+// };
+
+
+
 class Classifier {
 
     typedef std::function<void(VD::const_iterator, VD::const_iterator, VD::iterator)> ACTIVATIONFUNCTION;
@@ -133,6 +179,12 @@ class Classifier {
 
     public:
 
+        enum ACTIVATIONFUNCTIONID {
+            ReLU,
+            Sigmoid,
+            Tanh
+        };
+
         ACTIVATIONFUNCTION const
         actSigmoid = [](VD::const_iterator pCNetBegin, VD::const_iterator pCNetEnd, VD::iterator pOutBegin) {
 
@@ -142,7 +194,7 @@ class Classifier {
         ACTIVATIONFUNCTION const
         dActSigmoid = [](VD::const_iterator pCOutBegin, VD::const_iterator pCOutEnd, VD::iterator pDstBegin) {
 
-            std::transform(pCOutBegin, pCOutEnd, pDstBegin, [](D const &pX){return pX * (1. - pX);});
+            std::transform(pCOutBegin, pCOutEnd, pDstBegin, [](D const &pX){return .01 + pX * (1. - pX);});
         };
 
         ACTIVATIONFUNCTION const
@@ -232,7 +284,7 @@ class Classifier {
 
     public:
 
-        Classifier(Vec<SIZE> const &pLayerSizes, D const &pEta = .1, unsigned int const &pSeed = static_cast<unsigned int>(time(nullptr)), bool const &pUseAdam = false) :
+        Classifier(Vec<SIZE> const &pLayerSizes, Vec<ACTIVATIONFUNCTIONID> const &pActivationFunctionIDs, D const &pEta = .1, unsigned int const &pSeed = static_cast<unsigned int>(time(nullptr)), bool const &pUseAdam = false) :
         eta(pEta),
         step(0),
         i(pLayerSizes[0]) {
@@ -268,12 +320,25 @@ class Classifier {
                 if (layerID == pLayerSizes.size() - 1) {
                     act.push_back(actSoftmax);
                     dact.push_back(dActSoftmax);
-                } else if (layerID == pLayerSizes.size() - 2) {
-                    act.push_back(actSigmoid);
-                    dact.push_back(dActSigmoid);
                 } else {
-                    act.push_back(actReLU);
-                    dact.push_back(dActReLU);
+                    switch (pActivationFunctionIDs[layerID]) {
+                    
+                        case ReLU: {
+                            act.push_back(actReLU);
+                            dact.push_back(dActReLU);
+                            break;
+                        }
+                        case Sigmoid: {
+                            act.push_back(actSigmoid);
+                            dact.push_back(dActSigmoid);
+                            break;
+                        }
+                        default: {
+                            act.push_back(actReLU);
+                            dact.push_back(dActReLU);
+                            break;
+                        }
+                    }
                 }
             }
             useAdam = pUseAdam;
@@ -318,6 +383,36 @@ class Classifier {
             presentInput(pInputBegin);
 
             return remember();
+        }
+
+        Classifier
+        & setActivationFunction(SIZE const &pLayer, ACTIVATIONFUNCTIONID const &pActivationFunctionID) {
+
+            if (pLayer < act.size() - 1) {
+                switch (pActivationFunctionID) {
+                    case ReLU: {
+
+                        act[pLayer]  = actReLU;
+                        dact[pLayer] = dActReLU;
+                        break;
+                    }
+                    case Sigmoid: {
+
+                        act[pLayer]  = actSigmoid;
+                        dact[pLayer] = dActSigmoid;
+                        break;
+                    }
+                    case Tanh: {
+
+                        act[pLayer]  = actTanh;
+                        dact[pLayer] = dActTanh;
+                        break;
+                    }
+                    default:
+                        break;
+                }
+            }
+            return *this;
         }
 
         SIZE
