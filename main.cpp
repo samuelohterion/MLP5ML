@@ -90,9 +90,9 @@ main() {
     std::cout << "Classifiers 3 & 4 --------------------------------------------------------------------------------------------\n";
 
     Classifier
-    cReLUReLU(layerSizes, {Classifier::ReLU, Classifier::ReLU},       eta, seed, useAdam),
-    cSigSig(layerSizes,   {Classifier::Sigmoid, Classifier::Sigmoid}, eta, seed, useAdam),
-    cTanhTanh(layerSizes, {Classifier::Tanh, Classifier::Tanh},       eta, seed, useAdam);
+    cReLUReLU(layerSizes, {"ReLU",    "ReLU"},    eta, seed, useAdam),
+    cSigSig(layerSizes,   {"Sigmoid", "Sigmoid"}, eta, seed, useAdam),
+    cTanhTanh(layerSizes, {"Tanh",    "Tanh"},    eta, seed, useAdam);
 
     // cSigSig.setActivationFunction(0, Classifier::Sigmoid).setActivationFunction(1, Classifier::Sigmoid);
     // cTanhTanh.setActivationFunction(0, Classifier::Tanh).setActivationFunction(1, Classifier::Tanh);

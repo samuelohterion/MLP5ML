@@ -179,11 +179,11 @@ class Classifier {
 
     public:
 
-        enum ACTIVATIONFUNCTIONID {
-            ReLU,
-            Sigmoid,
-            Tanh
-        };
+        // enum ACTIVATIONFUNCTIONID {
+        //     ReLU,
+        //     Sigmoid,
+        //     Tanh
+        // };
 
         ACTIVATIONFUNCTION const
         actSigmoid = [](VD::const_iterator pCNetBegin, VD::const_iterator pCNetEnd, VD::iterator pOutBegin) {
@@ -284,7 +284,7 @@ class Classifier {
 
     public:
 
-        Classifier(Vec<SIZE> const &pLayerSizes, Vec<ACTIVATIONFUNCTIONID> const &pActivationFunctionIDs, D const &pEta = .1, unsigned int const &pSeed = static_cast<unsigned int>(time(nullptr)), bool const &pUseAdam = false) :
+        Classifier(Vec<SIZE> const &pLayerSizes, Vec<std::string> const &pActivationFunctionIDs, D const &pEta = .1, unsigned int const &pSeed = static_cast<unsigned int>(time(nullptr)), bool const &pUseAdam = false) :
         eta(pEta),
         step(0),
         i(pLayerSizes[0]) {
@@ -321,23 +321,15 @@ class Classifier {
                     act.push_back(actSoftmax);
                     dact.push_back(dActSoftmax);
                 } else {
-                    switch (pActivationFunctionIDs[layerID]) {
-                    
-                        case ReLU: {
-                            act.push_back(actReLU);
-                            dact.push_back(dActReLU);
-                            break;
-                        }
-                        case Sigmoid: {
-                            act.push_back(actSigmoid);
-                            dact.push_back(dActSigmoid);
-                            break;
-                        }
-                        default: {
-                            act.push_back(actReLU);
-                            dact.push_back(dActReLU);
-                            break;
-                        }
+                    if (pActivationFunctionIDs[layerID - 1] == "Sigmoid") {                    
+                        act.push_back(actSigmoid);
+                        dact.push_back(dActSigmoid);
+                    } else if (pActivationFunctionIDs[layerID - 1] == "Tanh") {
+                        act.push_back(actTanh);
+                        dact.push_back(dActTanh);
+                    } else {
+                        act.push_back(actReLU);
+                        dact.push_back(dActReLU);
                     }
                 }
             }
@@ -386,30 +378,18 @@ class Classifier {
         }
 
         Classifier
-        & setActivationFunction(SIZE const &pLayer, ACTIVATIONFUNCTIONID const &pActivationFunctionID) {
+        & setActivationFunction(SIZE const &pLayer, std::string const &pActivationFunctionID) {
 
             if (pLayer < act.size() - 1) {
-                switch (pActivationFunctionID) {
-                    case ReLU: {
-
-                        act[pLayer]  = actReLU;
-                        dact[pLayer] = dActReLU;
-                        break;
-                    }
-                    case Sigmoid: {
-
-                        act[pLayer]  = actSigmoid;
-                        dact[pLayer] = dActSigmoid;
-                        break;
-                    }
-                    case Tanh: {
-
-                        act[pLayer]  = actTanh;
-                        dact[pLayer] = dActTanh;
-                        break;
-                    }
-                    default:
-                        break;
+                if (pActivationFunctionID == "Sigmoid") {
+                    act[pLayer]  = actSigmoid;
+                    dact[pLayer] = dActSigmoid;
+                } else if (pActivationFunctionID == "Tanh") {
+                    act[pLayer]  = actTanh;
+                    dact[pLayer] = dActTanh;
+                } else {
+                    act[pLayer]  = actReLU;
+                    dact[pLayer] = dActReLU;
                 }
             }
             return *this;
