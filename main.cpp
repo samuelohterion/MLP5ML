@@ -133,7 +133,7 @@ main() {
             Vec<SIZE>
             predLabelsReLU = cReLUReLU.rememberBatchLabels(patternsFlat),
             predLabelsSig  = cSigSig.rememberBatchLabels(patternsFlat),
-            predLabelsTang = cTanhTanh.rememberBatchLabels(patternsFlat);
+            predLabelsTanh = cTanhTanh.rememberBatchLabels(patternsFlat);
 
             std::cout << "loop: " << std::setw(1 + static_cast<int>(log10(maxLoops))) << loop << std::endl
             << "   rmsReLU:    " << Classifier::rootMeanSquare(predTargetsReLU, labels)
@@ -159,7 +159,7 @@ main() {
                 << "]   pSig["  << vec2Str(round(VD(predItSig, predItSig + static_cast<long int>(cSigSig.sizeOfOutput())), 2), 6)
                 << "]   lSig["  << predLabelsSig[sampleID]
                 << "]   pTanh[" << vec2Str(round(VD(predItTanh, predItTanh + static_cast<long int>(cTanhTanh.sizeOfOutput())), 2), 6)
-                << "]   lTanh[" << predLabelsSig[sampleID]
+                << "]   lTanh[" << predLabelsTanh[sampleID]
                 << "]" << std::endl;
                 predItReLU += static_cast<long int>(cReLUReLU.sizeOfOutput());
                 predItSig  += static_cast<long int>(cSigSig.sizeOfOutput());
