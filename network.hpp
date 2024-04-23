@@ -51,7 +51,6 @@ using namespace alg;
 // };
 
 
-
 class Network {
 
     typedef std::function<void(VD::const_iterator, VD::const_iterator, VD::iterator)> ACTIVATIONFUNCTION;
@@ -234,7 +233,8 @@ class Network {
 
         // ACTIVATIONFUNCTION const
         // dActSoftmax = [](VD::const_iterator pCOutBegin, VD::const_iterator pCOutEnd, VD::iterator pDstBegin) {
-
+        // not neccesary, because softmax is only used in the output layer and the computation of delta includes
+        // the derivative of softmax
         //     //std::transform(pCOutBegin, pCOutEnd, pDstBegin, [](D const &pX){return pX < 0 ? .001 : 1.;});
         // };
 
@@ -281,6 +281,23 @@ class Network {
 
     public:
 
+        /*
+        Args:
+            pLayerSizes:
+                sizes of all layers inclusive input pseudo layer. e.g. {2,3,3,2} -> 2 inputs, 2 x 3 hidden, 2 outputs
+            pActivationFunctionIDs:
+                vector of strings of either "ReLU", "Tanh", or "Sigmoid",
+                only for the hidden layers. eg. {"ReLU", "Tanh"} for a net with layer sizes of {2,3,3,2}.
+            pUseAsNetwork:
+                use it either as a classifier with a one hot output and teaching via labels,
+                or as a classical multilayer perceptron with an output vector as desired output.
+            pEta:
+                step size or teaching rate
+            pSeed:
+                the seed for the random generator for generating randomized weights
+            pUseAdam:
+                use Adam optimization or not.
+        */
         Network(
             Vec<SIZE> const &pLayerSizes,
             Vec<std::string> const &pActivationFunctionIDs,
