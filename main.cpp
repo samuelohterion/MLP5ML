@@ -72,23 +72,23 @@ main() {
 
         SIZE
         loop,
-        maxLoops      = 3e2,
-        maxLoopsPrint = 5e1;
+        maxLoops      = 2e2,
+        maxLoopsPrint = 1e1;
 
         unsigned int
-        seed = 981;
+        seed = 94891;
 
         D
         eta  = .1;
         
         Vec<SIZE>
-        layerSizes {2, 3, 3, 2};
+        layerSizes {2, 3, 2};
 
         bool
         useAdam = true;
 
 
-        std::cout << "Classifiers 3 & 4 --------------------------------------------------------------------------------------------\n";
+        std::cout << "Classifiers --------------------------------------------------------------------------------------------------\n";
 
         Classifier
         cReLUReLU(layerSizes, {"ReLU",    "ReLU"},    true, eta, seed, useAdam),
@@ -124,7 +124,7 @@ main() {
             cSigSig.teachBatchLabels(shuffledPatterns, shuffledLabels);
             cTanhTanh.teachBatchLabels(shuffledPatterns, shuffledLabels);
             
-            if (loop % maxLoopsPrint == 0) {
+            if ((loop+1) % maxLoopsPrint == 0) {
 
                 VD
                 predTargetsReLU = cReLUReLU.rememberBatchTargets(patternsFlat),
@@ -136,7 +136,7 @@ main() {
                 predLabelsSig  = cSigSig.rememberBatchLabels(patternsFlat),
                 predLabelsTanh = cTanhTanh.rememberBatchLabels(patternsFlat);
 
-                std::cout << "loop: " << std::setw(1 + static_cast<int>(log10(maxLoops))) << loop << std::endl
+                std::cout << "loop: " << std::setw(1 + static_cast<int>(log10(maxLoops))) << loop + 1 << std::endl
                 << "   rmsReLU:    " << Classifier::rootMeanSquare(predTargetsReLU, labels)
                 << "   ceReLU:     " << Classifier::crossEntropy(predTargetsReLU, labels)  << std::endl
                 << "   rmsSigmoid: " << Classifier::rootMeanSquare(predTargetsSig, labels)
@@ -180,14 +180,14 @@ main() {
             {1., 1.} 
         },
         targets {
-            {0., 0., 0., 1., 0.}, 
-            {1., 1., 0., 0., 1.}, 
-            {1., 1., 0., 1., 1.}, 
-            {0., 1., 1., 0., 0.}
+            {0.}, 
+            {1.}, 
+            {1.}, 
+            {0.}
         };
 
         unsigned int
-        seed = 9891;
+        seed = 1;
 
         D
         eta  = .1;
@@ -200,7 +200,7 @@ main() {
 
         SIZE
         loop,
-        maxLoops      = 3e2,
+        maxLoops      = 2e2,
         maxLoopsPrint = 5e1;
 
         VD
@@ -236,12 +236,12 @@ main() {
         
             mlp.teachBatchTargets(shuffledPatterns, shuffledTargets);
             
-            if (loop % maxLoopsPrint == 0) {
+            if ((loop + 1) % maxLoopsPrint == 0) {
 
                 VD
                 predTargetsMLP = mlp.rememberBatchTargets(patternsFlat);
 
-                std::cout << "loop: " << std::setw(1 + static_cast<int>(log10(maxLoops))) << loop << std::endl
+                std::cout << "loop: " << std::setw(1 + static_cast<int>(log10(maxLoops))) << loop + 1 << std::endl
                 << "   mlp:    " << Classifier::rootMeanSquare(predTargetsMLP, targetsFlat, patterns.size()) << std::endl;
         
                 auto
