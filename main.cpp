@@ -72,8 +72,8 @@ main() {
 
         SIZE
         loop,
-        maxLoops      = 2e2,
-        maxLoopsPrint = 1e1;
+        maxLoops      = 5e2,
+        maxLoopsPrint = 1e2;
 
         unsigned int
         seed = 94891;
@@ -82,7 +82,7 @@ main() {
         eta  = .1;
         
         Vec<SIZE>
-        layerSizes {2, 3, 2};
+        layerSizes {2, 3, 3, 2};
 
         bool
         useAdam = true;
@@ -91,9 +91,12 @@ main() {
         std::cout << "Networks --------------------------------------------------------------------------------------------------\n";
 
         Network
-        cReLUReLU(layerSizes, {"ReLU",    "ReLU"},    true, eta, seed, useAdam),
-        cSigSig(layerSizes,   {"Sigmoid", "Sigmoid"}, true, eta, seed, useAdam),
-        cTanhTanh(layerSizes, {"Tanh",    "Tanh"},    true, eta, seed, useAdam);
+        cReLUReLU,
+        cSigSig,
+        cTanhTanh;
+        cReLUReLU.config(layerSizes, {"ReLU",    "ReLU"},    true, eta, seed, useAdam);
+        cSigSig.config(layerSizes,   {"Sigmoid", "Sigmoid"}, true, eta, seed, useAdam);
+        cTanhTanh.config(layerSizes, {"Tanh",    "Tanh"},    true, eta, seed, useAdam);
 
         Vec<SIZE>
         idx(patterns.size());
@@ -165,6 +168,10 @@ main() {
                 std::cout << std::endl;
             }
         }
+
+        cReLUReLU.save("ReLU-ReLU-Softmax");
+        cSigSig.save("Sigmoid-Sigmoid-Softmax");
+        cTanhTanh.save("Tanh-Tanh-Softmax");
     }
 
     {
@@ -196,8 +203,8 @@ main() {
 
         SIZE
         loop,
-        maxLoops      = 2e2,
-        maxLoopsPrint = 5e1;
+        maxLoops      = 5e2,
+        maxLoopsPrint = 1e2;
 
         VD
         patternsFlat = flattenMatrix(patterns),
@@ -207,7 +214,8 @@ main() {
         layerSizes {2, 3, targets[0].size()};
 
         Network
-        mlp(layerSizes, {"Tanh"}, dontUseAsNetwork, eta, seed, useAdam);
+        mlp;
+        mlp.config(layerSizes, {"Tanh"}, dontUseAsNetwork, eta, seed, useAdam);
 
         Vec<SIZE>
         idx(patterns.size());
@@ -254,9 +262,37 @@ main() {
                 }
                 std::cout << std::endl;
             }
-        }
-    }
 
+            mlp.save("mlp");
+        }
+
+
+        Network
+        nw;
+
+        nw.load("mlp");
+
+        VD
+        predTargetsMLP = nw.rememberBatchTargets(patternsFlat);
+
+        std::cout << "loop: " << std::setw(1 + static_cast<int>(log10(maxLoops))) << loop << std::endl
+        << "   mlp:    " << Network::rootMeanSquare(predTargetsMLP, targetsFlat, patterns.size()) << std::endl;
+
+        auto
+        predItMLP = predTargetsMLP.cbegin();
+
+        for (SIZE sampleID = 0; sampleID < patterns.size(); ++sampleID) {
+            
+            std::cout 
+            << "i[" << vec2Str(VD(patterns[sampleID].cbegin(), patterns[sampleID].cend()), 2) 
+            << "]   t[  " << targets[sampleID] 
+            << "]   p[" << vec2Str(round(VD(predItMLP, predItMLP + static_cast<long int>(mlp.sizeOfOutput())), 2), 5)
+            << "]" << std::endl;
+            predItMLP += static_cast<long int>(mlp.sizeOfOutput());
+        }
+        std::cout << std::endl;
+
+    }
 
     return 0;
 }

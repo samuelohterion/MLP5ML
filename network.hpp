@@ -6,51 +6,6 @@
 
 using namespace alg;
 
-// class ActivationFunction {
-
-//     public:
-
-//         ActivationFunction(STR const &pID) :
-//         ID(pID) {
-
-//         }
-
-//         virtual
-//         ~ActivationFunction() = 0;
-
-//     public:
-
-//         STR const 
-//         ID;
-
-//         D
-//         fun,
-//         dfun;
-// };
-
-// class LossFunction {
-
-//     public:
-
-//         LossFunction(STR const &pID) :
-//         ID(pID) {
-
-//         }
-
-//         virtual
-//         ~LossFunction() = 0;
-
-//     public:
-
-//         STR const 
-//         ID;
-
-//         D
-//         fun,
-//         dfun;
-// };
-
-
 class Network {
 
     typedef std::function<void(VD::const_iterator, VD::const_iterator, VD::iterator)> ACTIVATIONFUNCTION;
@@ -241,28 +196,17 @@ class Network {
     private:
 
         bool
-        useAsNetwork;
+        useAsClassifier;
 
-    public:
-
-        D
-        eta;
-
-        bool
-        useAdam;
+        Vec<std::string>
+        activationFunctionsStrings;
 
         SIZE
         step;
 
-        D
-        adamBeta1,
-        adamBeta2;
-
         Vec<ACTIVATIONFUNCTION>
         act,
         dact;
-
-    private:
 
         VD
         i;
@@ -281,14 +225,26 @@ class Network {
 
     public:
 
+        D
+        eta;
+
+        bool
+        useAdam;
+
+        D
+        adamBeta1,
+        adamBeta2;
+
+    public:
+
         /*
         Args:
             pLayerSizes:
                 sizes of all layers inclusive input pseudo layer. e.g. {2,3,3,2} -> 2 inputs, 2 x 3 hidden, 2 outputs
-            pActivationFunctionIDs:
+            pActivationFunctionsStrings:
                 vector of strings of either "ReLU", "Tanh", or "Sigmoid",
                 only for the hidden layers. eg. {"ReLU", "Tanh"} for a net with layer sizes of {2,3,3,2}.
-            pUseAsNetwork:
+            pUseAsClassifier:
                 use it either as a classifier with a one hot output and teaching via labels,
                 or as a classical multilayer perceptron with an output vector as desired output.
             pEta:
@@ -297,21 +253,58 @@ class Network {
                 the seed for the random generator for generating randomized weights
             pUseAdam:
                 use Adam optimization or not.
-        */
-        Network(
+        */       
+        // Network(
+        //     Vec<SIZE> const &pLayerSizes,
+        //     Vec<std::string> const &pActivationFunctionsStrings,
+        //     bool const &pUseAsClassifier,
+        //     D const &pEta = .1,
+        //     unsigned int const &pSeed = static_cast<unsigned int>(time(nullptr)),
+        //     bool const &pUseAdam = false,
+        //     D const &pAdamBeta1 = .9,
+        //     D const &pAdamBeta2 = .999
+        // ) {
+        //     config(pLayerSizes, pActivationFunctionsStrings, pUseAsClassifier, pEta, pSeed, pUseAdam, pAdamBeta1, pAdamBeta2, 0);
+        // }
+        Network() {            
+        }
+
+        ~Network() {
+
+        }
+
+        Network
+        & config(
             Vec<SIZE> const &pLayerSizes,
-            Vec<std::string> const &pActivationFunctionIDs,
-            bool const &pUseAsNetwork,
+            Vec<std::string> const &pActivationFunctionsStrings,
+            bool const &pUseAsClassifier,
             D const &pEta = .1,
             unsigned int const &pSeed = static_cast<unsigned int>(time(nullptr)),
-            bool const &pUseAdam = false
-        ) :
-        useAsNetwork(pUseAsNetwork),
-        eta(pEta),
-        step(0),
-        i(pLayerSizes[0]) {
-            srand(pSeed);
+            bool const &pUseAdam = false,
+            D const &pAdamBeta1 = .9,
+            D const &pAdamBeta2 = .999,
+            SIZE const &pStep = 0,
+            Tsr<D> const &pWeights = Tsr<D>(0)
+        ) {
+            useAsClassifier = pUseAsClassifier;
+            useAdam = pUseAdam;
+            adamBeta1 = pAdamBeta1;
+            adamBeta2 = pAdamBeta2;
+            activationFunctionsStrings = pActivationFunctionsStrings;
+            step = pStep,
+            i = VD(pLayerSizes[0]);
             i.push_back(1.);
+            eta = pEta;
+            srand(pSeed);
+            d.clear();
+            n.clear();
+            o.clear();
+            w.clear();
+            act.clear();
+            dact.clear();
+            adamV.clear();
+            adamM.clear();
+                
             for (SIZE layerID = 1; layerID < pLayerSizes.size(); ++layerID) {
                 d.push_back(VD(pLayerSizes[layerID]));
                 n.push_back(VD(pLayerSizes[layerID]));
@@ -320,33 +313,38 @@ class Network {
                     o[o.size() - 1].push_back(1.);
                 }
 
-                D
-                wMax = sqrt(6. / static_cast<D>(pLayerSizes[layerID] + pLayerSizes[layerID - 1])),
-                wMin = -wMax;
-                
-                MD
-                wTmp = wMin + (wMax - wMin) * mrnd(pLayerSizes[layerID], pLayerSizes[layerID - 1] + 1);
-             
-                D
-                off = .1 * wMax;
-                alg::fOrOn(wTmp, [off](D &x){return .9 * x + (x < 0 ? -off : off);});
+                if (pWeights.size() == 0) {
 
-                w.push_back(wTmp);
+                    D
+                    wMax = sqrt(6. / static_cast<D>(pLayerSizes[layerID] + pLayerSizes[layerID - 1])),
+                    wMin = -wMax;
+                    
+                    MD
+                    wTmp = wMin + (wMax - wMin) * mrnd(pLayerSizes[layerID], pLayerSizes[layerID - 1] + 1);
+                
+                    D
+                    off = .1 * wMax;
+                    alg::fOrOn(wTmp, [off](D &x){return .9 * x + (x < 0 ? -off : off);});
+
+                    w.push_back(wTmp);
+                } else {
+                    w = pWeights;
+                }
 
                 adamV.push_back(mcnst(pLayerSizes[layerID], pLayerSizes[layerID - 1] + 1, 0.));
                 adamM.push_back(mcnst(pLayerSizes[layerID], pLayerSizes[layerID - 1] + 1, 0.));
 
                 if (layerID == pLayerSizes.size() - 1) {
-                    if (useAsNetwork) {
+                    if (useAsClassifier) {
                         act.push_back(actSoftmax);
                     } else {
                         act.push_back(actSigmoid);
                     }
                 } else {
-                    if (pActivationFunctionIDs[layerID - 1] == "Sigmoid") {                    
+                    if (pActivationFunctionsStrings[layerID - 1] == "Sigmoid") {                    
                         act.push_back(actSigmoid);
                         dact.push_back(dActSigmoid);
-                    } else if (pActivationFunctionIDs[layerID - 1] == "Tanh") {
+                    } else if (pActivationFunctionsStrings[layerID - 1] == "Tanh") {
                         act.push_back(actTanh);
                         dact.push_back(dActTanh);
                     } else {
@@ -355,13 +353,60 @@ class Network {
                     }
                 }
             }
-            useAdam = pUseAdam;
-            adamBeta1 = .9;
-            adamBeta2 = .999;
+
+            return *this;
         }
 
-        ~Network() {
+        static D
+        crossEntropy(VD::const_iterator const &pPredictionIter, ADDR const &pLabel) {
+            return -log(pPredictionIter[pLabel]);
+        }
 
+        static D
+        crossEntropy(VD const &pPrediction, ADDR const &pLabel) {
+            return crossEntropy(pPrediction.cbegin(), pLabel);
+        }
+
+        static D
+        crossEntropy(VD const &pPredictions, Vec<SIZE> const &pLabels) {
+            ADDR
+            sizeOfPrediction = static_cast<ADDR>(pPredictions.size()) / static_cast<ADDR>(pLabels.size());
+
+            VD::const_iterator
+            predIt   = pPredictions.cbegin();
+
+            D
+            s = 0.;
+
+            for (SIZE sampleID = 0; sampleID < pLabels.size(); ++sampleID) {
+                s += crossEntropy(predIt, static_cast<ADDR>(pLabels[sampleID]));
+                predIt += sizeOfPrediction;
+            }
+            return s;
+        }
+
+        Vec<SIZE>
+        layerSizes() const {
+
+            Vec<SIZE>
+            layerSize;
+            
+            layerSize.push_back(sizeOfInput());
+            for (SIZE l = 0; l < w.size(); ++l) {
+                layerSize.push_back(w[l].size());
+            }
+
+            return layerSize;
+        }
+
+        VD
+        output() const {
+            return o[o.size() - 1];
+        }
+
+        SIZE
+        outputLayerID() const {
+            return o.size() - 1;
         }
 
         Network
@@ -397,135 +442,6 @@ class Network {
             presentInput(pInputBegin);
 
             return remember();
-        }
-
-        Network
-        & setActivationFunction(SIZE const &pLayer, std::string const &pActivationFunctionID) {
-
-            if (pLayer < act.size() - 1) {
-                if (pActivationFunctionID == "Sigmoid") {
-                    act[pLayer]  = actSigmoid;
-                    dact[pLayer] = dActSigmoid;
-                } else if (pActivationFunctionID == "Tanh") {
-                    act[pLayer]  = actTanh;
-                    dact[pLayer] = dActTanh;
-                } else {
-                    act[pLayer]  = actReLU;
-                    dact[pLayer] = dActReLU;
-                }
-            }
-            return *this;
-        }
-
-        SIZE
-        sizeOfInput() const {
-            return i.size() - 1;
-        }
-
-        SIZE
-        outputLayerID() const {
-            return o.size() - 1;
-        }
-
-        SIZE
-        sizeOfOutput() const {
-            return o[outputLayerID()].size();
-        }
-
-        Network
-        & teachLabel(SIZE const &pLabel) {
-
-            ++ step;
-
-            SIZE
-            layerID = outputLayerID();
-
-            d[layerID] = o[layerID];
-            d[layerID][pLabel] -= 1;
-                        
-            return teach__(layerID);
-        }
-
-        Network
-        & teachTarget(VD::const_iterator const &pTargetBegin) {
-
-            ++step;
-
-            if (useAsNetwork) {
-
-                SIZE
-                label = static_cast<SIZE>(std::find(pTargetBegin, pTargetBegin + static_cast<ADDR>(sizeOfOutput()), 1.) - pTargetBegin);
-
-                return teachLabel(label);
-            }
-
-            SIZE
-            layerID = outputLayerID();
-
-            d[layerID] = o[layerID] * (1. - o[layerID]) * (o[layerID] - VD(pTargetBegin, pTargetBegin + static_cast<long int>(o[layerID].size())));
-                        
-            return teach__(layerID);
-        }
-
-        Network
-        & teachTarget(VD const &pTarget) {
-
-            if (useAsNetwork) {
-
-                return teachTarget(pTarget.cbegin());
-            }
-
-            SIZE
-            layerID = outputLayerID();
-
-            d[layerID] = o[layerID] * (1. - o[layerID]) * (o[layerID] - pTarget);
-                        
-            return teach__(layerID);
-        }
-
-        Network
-        & teachBatchTargets(VD const &pPatterns, VD const &pTargets) {
-
-            SIZE 
-            batchStep = step;
-
-            SIZE
-            batchSize = pPatterns.size() / sizeOfInput();
-
-            VD::const_iterator
-            patIt = pPatterns.cbegin(),
-            tgtIt = pTargets.cbegin();
-
-            for (SIZE batchID = 0; batchID < batchSize; ++batchID) {
-
-                step = batchStep;
-                remember(patIt);
-                teachTarget(tgtIt);
-                patIt += static_cast<ADDR>(sizeOfInput());
-                tgtIt += static_cast<ADDR>(sizeOfOutput());
-            } 
-            step = batchStep + 1;
-            
-            return *this;
-        }
-
-        Network
-        & teachBatchLabels(VD const &pPatterns, Vec<SIZE> const &pLabels) {
-            SIZE 
-            batchStep = step;
-
-            auto
-            patIt = pPatterns.cbegin();
-
-            for (auto labIt = pLabels.cbegin(); labIt < pLabels.cend(); ++labIt) {
-
-                step = batchStep;
-                remember(patIt);
-                teachLabel(*labIt);
-                patIt += static_cast<ADDR>(sizeOfInput());
-            } 
-            step = batchStep + 1;
-            return *this;
         }
 
         VD
@@ -586,34 +502,6 @@ class Network {
         }
 
         static D
-        crossEntropy(VD::const_iterator const &pPredictionIter, ADDR const &pLabel) {
-            return -log(pPredictionIter[pLabel]);
-        }
-
-        static D
-        crossEntropy(VD const &pPrediction, ADDR const &pLabel) {
-            return crossEntropy(pPrediction.cbegin(), pLabel);
-        }
-
-        static D
-        crossEntropy(VD const &pPredictions, Vec<SIZE> const &pLabels) {
-            ADDR
-            sizeOfPrediction = static_cast<ADDR>(pPredictions.size()) / static_cast<ADDR>(pLabels.size());
-
-            VD::const_iterator
-            predIt   = pPredictions.cbegin();
-
-            D
-            s = 0.;
-
-            for (SIZE sampleID = 0; sampleID < pLabels.size(); ++sampleID) {
-                s += crossEntropy(predIt, static_cast<ADDR>(pLabels[sampleID]));
-                predIt += sizeOfPrediction;
-            }
-            return s;
-        }
-
-        static D
         rootMeanSquare(VD pPrediction, ADDR const &pLabel) {
             pPrediction[static_cast<SIZE>(pLabel)] -= 1.;
             pPrediction *= pPrediction;            
@@ -668,108 +556,220 @@ class Network {
             return s;
         }
 
-        // static D
-        // crossEntropy(VD const &pPredictions, Vec<SIZE> const &pLabels) {
+        Network
+        load(std::string const &pNetName) {
 
-        //     SIZE
-        //     sizeOfPrediction = pPredictions.size() / pLabels.size();
+            std::ifstream
+            ifs;
+            
+            ifs.open(pNetName, std::ofstream::in);
 
-        //     auto
-        //     predIt   = pPredictions.cbegin();
+            std::string
+            dummyStr;
 
-        //     D
-        //     s = 0.;
+            Vec<std::string>
+            locActivationFunctionNames;
 
-        //     for (SIZE sampleID = 0; sampleID < pLabels.size(); ++sampleID) {
-        //         s += crossEntropy()
-        //     }
+            bool
+            locUseAsClassifier,
+            locUseAdam;
 
-        //     while (predIt < pPrediction.cend()) {
-        //         auto
-        //         predValIt = predIt->cbegin(),
-        //         targetValIt = targetIt->cbegin();
-        //         while (predValIt < predIt->cend()) {
-        //             s += - *targetValIt * log(*predValIt);
-        //             ++predValIt;
-        //             ++targetValIt;
-        //         }        
-        //         ++predIt;
-        //         ++targetIt;
-        //     }
+            D
+            locAdamBeta1,
+            locAdamBeta2,
+            locEta;
 
-        //     return s;
-        // }
+            Vec<SIZE>
+            locLayerSizes;
 
-        // static D
-        // cross_entropy(MD const &pPrediction, MD const &pTarget) {
+            SIZE
+            locStep;
 
-        //     auto
-        //     predIt = pPrediction.cbegin(),
-        //     targetIt = pTarget.cbegin();
+            ifs
+            >> dummyStr >> dummyStr               // name: net
+            >> dummyStr >> locUseAsClassifier;    // useAsClassifier: 1
+            
+            ifs >> dummyStr;
+            alg::load(ifs, locLayerSizes);              // layers: 2 3 1
+            
+            ifs >> dummyStr;
+            alg::load(ifs, locActivationFunctionNames);            // activationFunctions: ReLU Tanh
+                        
+            ifs
+            >> dummyStr >> locEta
+            >> dummyStr >> locUseAdam
+            >> dummyStr >> locAdamBeta1
+            >> dummyStr >> locAdamBeta2
+            >> dummyStr >> locStep >> dummyStr;
+            
+            getline(ifs, dummyStr);
+            
+            Tsr<D>
+            locWeights;
 
-        //     D
-        //     s = 0.;
+            alg::load(ifs, locWeights);
 
-        //     while (predIt < pPrediction.cend()) {
-        //         auto
-        //         predValIt = predIt->cbegin(),
-        //         targetValIt = targetIt->cbegin();
-        //         while (predValIt < predIt->cend()) {
-        //             s += - *targetValIt * log(*predValIt);
-        //             ++predValIt;
-        //             ++targetValIt;
-        //         }        
-        //         ++predIt;
-        //         ++targetIt;
-        //     }
+            ifs.close();
 
-        //     return s;
-        // }
+            config(locLayerSizes, locActivationFunctionNames, locUseAsClassifier, locEta, 0, locUseAdam, locAdamBeta1, locAdamBeta2, locStep, locWeights);
 
-        // Network
-        // & printStatus(MD const &pPatterns, MD const &pTargets, int const &pDigits = 2) {
+            return *this;
+        }
 
-        //     MD
-        //     pred(pPatterns.size());
+        Network
+        save(std::string const &pNetName) {
 
-        //     for (SIZE j = 0; j < pred.size(); ++j) {
+            std::ofstream
+            ofs;
+            
+            ofs.open(pNetName, std::ofstream::out | std::ofstream::trunc);
 
-        //         pred[j] = remember(pPatterns[j]).o[o.size() - 1];
-        //         std::cout << "i[  " << VD(i.cbegin(), i.cend() - 1) << "]   t[  " << pTargets[j] << "]   p[  " << round(pred[j], pDigits) << "]" << std::endl;
-        //     }
+            ofs
+            << "name:                " << pNetName << std::endl
+            << "useAsClassifier:     " << useAsClassifier << std::endl
+            << "layers:              " << layerSizes() << std::endl
+            << "activationFunctions: " << activationFunctionsStrings << std::endl
+            << "eta:                 " << eta << std::endl
+            << "useAdam:             " << useAdam << std::endl
+            << "adamBeta1:           " << adamBeta1 << std::endl
+            << "adamBeta2:           " << adamBeta2 << std::endl
+            << "step:                " << step << std::endl
+            << "weights:" << std::endl
+            << std::setprecision(17) << w << std::endl;
+            
+            ofs.close();
 
-        //     std::cout << "cross entropy total: " << crossEntropy(pred, pTargets) << std::endl << std::endl;
+            return *this;
+        }
 
-        //     return *this;
-        // }
+        SIZE
+        steps() const {
 
-        // Network
-        // & printStatus(VD const &pPatterns, Vec<SIZE> const &pLabels, int const &pDigits = 2) {
+            return step;
+        }
 
-        //     SIZE
-        //     sizeOfOnePattern = pPatterns.size() / pLabels.size();
+        Network
+        & setActivationFunction(SIZE const &pLayer, std::string const &pActivationFunctionID) {
 
-        //     auto
-        //     patternIt = pPatterns.cbegin();
+            if (pLayer < act.size() - 1) {
+                if (pActivationFunctionID == "Sigmoid") {
+                    act[pLayer]  = actSigmoid;
+                    dact[pLayer] = dActSigmoid;
+                } else if (pActivationFunctionID == "Tanh") {
+                    act[pLayer]  = actTanh;
+                    dact[pLayer] = dActTanh;
+                } else {
+                    act[pLayer]  = actReLU;
+                    dact[pLayer] = dActReLU;
+                }
+            }
+            return *this;
+        }
 
-        //     MD
-        //     pred(pLabels.size(), VD(sizeOfOnePattern));
+        SIZE
+        sizeOfInput() const {
+            return i.size() - 1;
+        }
 
-        //     for (SIZE j = 0; j < pred.size(); ++j) {
+        SIZE
+        sizeOfOutput() const {
+            return o[outputLayerID()].size();
+        }
 
-        //         pred[j] = remember(patternIt).o[o.size() - 1];
-        //         std::cout << "i[  " << VD(i.cbegin(), i.cend() - 1) << "]   t[  " << pLabels[j] << "]   p[  " << round(pred[j], pDigits) << "]" << std::endl;
-        //         patternIt += sizeOfOnePattern;
-        //     }
+        Network
+        & teachLabel(SIZE const &pLabel) {
 
-        //     std::cout << "cross entropy total: " << crossEntropy(pred, pTargets) << std::endl << std::endl;
+            ++ step;
 
-        //     return *this;
-        // }
+            SIZE
+            layerID = outputLayerID();
 
-        VD
-        output() const {
-            return o[o.size() - 1];
+            d[layerID] = o[layerID];
+            d[layerID][pLabel] -= 1;
+                        
+            return teach__(layerID);
+        }
+
+        Network
+        & teachTarget(VD::const_iterator const &pTargetBegin) {
+
+            ++step;
+
+            if (useAsClassifier) {
+
+                SIZE
+                label = static_cast<SIZE>(std::find(pTargetBegin, pTargetBegin + static_cast<ADDR>(sizeOfOutput()), 1.) - pTargetBegin);
+
+                return teachLabel(label);
+            }
+
+            SIZE
+            layerID = outputLayerID();
+
+            d[layerID] = o[layerID] * (1. - o[layerID]) * (o[layerID] - VD(pTargetBegin, pTargetBegin + static_cast<long int>(o[layerID].size())));
+                        
+            return teach__(layerID);
+        }
+
+        Network
+        & teachTarget(VD const &pTarget) {
+
+            if (useAsClassifier) {
+
+                return teachTarget(pTarget.cbegin());
+            }
+
+            SIZE
+            layerID = outputLayerID();
+
+            d[layerID] = o[layerID] * (1. - o[layerID]) * (o[layerID] - pTarget);
+                        
+            return teach__(layerID);
+        }
+
+        Network
+        & teachBatchTargets(VD const &pPatterns, VD const &pTargets) {
+
+            SIZE 
+            batchStep = step;
+
+            SIZE
+            batchSize = pPatterns.size() / sizeOfInput();
+
+            VD::const_iterator
+            patIt = pPatterns.cbegin(),
+            tgtIt = pTargets.cbegin();
+
+            for (SIZE batchID = 0; batchID < batchSize; ++batchID) {
+
+                step = batchStep;
+                remember(patIt);
+                teachTarget(tgtIt);
+                patIt += static_cast<ADDR>(sizeOfInput());
+                tgtIt += static_cast<ADDR>(sizeOfOutput());
+            } 
+            step = batchStep + 1;
+            
+            return *this;
+        }
+
+        Network
+        & teachBatchLabels(VD const &pPatterns, Vec<SIZE> const &pLabels) {
+            SIZE 
+            batchStep = step;
+
+            auto
+            patIt = pPatterns.cbegin();
+
+            for (auto labIt = pLabels.cbegin(); labIt < pLabels.cend(); ++labIt) {
+
+                step = batchStep;
+                remember(patIt);
+                teachLabel(*labIt);
+                patIt += static_cast<ADDR>(sizeOfInput());
+            } 
+            step = batchStep + 1;
+            return *this;
         }
 };
 
