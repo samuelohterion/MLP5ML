@@ -95,10 +95,6 @@ main() {
         cSigSig(layerSizes,   {"Sigmoid", "Sigmoid"}, true, eta, seed, useAdam),
         cTanhTanh(layerSizes, {"Tanh",    "Tanh"},    true, eta, seed, useAdam);
 
-        // cSigSig.setActivationFunction(0, Network::Sigmoid).setActivationFunction(1, Network::Sigmoid);
-        // cTanhTanh.setActivationFunction(0, Network::Tanh).setActivationFunction(1, Network::Tanh);
-        
-
         Vec<SIZE>
         idx(patterns.size());
         std::iota(idx.begin(), idx.end(), 0);
@@ -172,7 +168,7 @@ main() {
     }
 
     {
-         MD
+        MD
         patterns {
             {0., 0.}, 
             {0., 1.}, 

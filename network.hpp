@@ -188,7 +188,7 @@ class Network {
         ACTIVATIONFUNCTION const
         dActSigmoid = [](VD::const_iterator pCOutBegin, VD::const_iterator pCOutEnd, VD::iterator pDstBegin) {
 
-            std::transform(pCOutBegin, pCOutEnd, pDstBegin, [](D const &pX){return .01 + pX * (1. - pX);});
+            std::transform(pCOutBegin, pCOutEnd, pDstBegin, [](D const &pX){return .001 + pX * (1. - pX);});
         };
 
         ACTIVATIONFUNCTION const
