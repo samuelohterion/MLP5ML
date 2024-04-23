@@ -179,12 +179,6 @@ class Classifier {
 
     public:
 
-        // enum ACTIVATIONFUNCTIONID {
-        //     ReLU,
-        //     Sigmoid,
-        //     Tanh
-        // };
-
         ACTIVATIONFUNCTION const
         actSigmoid = [](VD::const_iterator pCNetBegin, VD::const_iterator pCNetEnd, VD::iterator pOutBegin) {
 
@@ -235,16 +229,19 @@ class Classifier {
                 s += *outIt++;
             }
             s = 1. / s;
-            std::transform(pOutBegin, pOutBegin + (pCNetEnd - pCNetBegin), pOutBegin, [maxPred, s](D const &pX){return pX * s;});
-            
+            std::transform(pOutBegin, pOutBegin + (pCNetEnd - pCNetBegin), pOutBegin, [maxPred, s](D const &pX){return pX * s;});            
         };
 
-        ACTIVATIONFUNCTION const
-        dActSoftmax = [](VD::const_iterator pCOutBegin, VD::const_iterator pCOutEnd, VD::iterator pDstBegin) {
+        // ACTIVATIONFUNCTION const
+        // dActSoftmax = [](VD::const_iterator pCOutBegin, VD::const_iterator pCOutEnd, VD::iterator pDstBegin) {
 
-            //std::transform(pCOutBegin, pCOutEnd, pDstBegin, [](D const &pX){return pX < 0 ? .001 : 1.;});
-        };
+        //     //std::transform(pCOutBegin, pCOutEnd, pDstBegin, [](D const &pX){return pX < 0 ? .001 : 1.;});
+        // };
 
+    private:
+
+        bool
+        useAsClassifier;
 
     public:
 
@@ -284,7 +281,15 @@ class Classifier {
 
     public:
 
-        Classifier(Vec<SIZE> const &pLayerSizes, Vec<std::string> const &pActivationFunctionIDs, D const &pEta = .1, unsigned int const &pSeed = static_cast<unsigned int>(time(nullptr)), bool const &pUseAdam = false) :
+        Classifier(
+            Vec<SIZE> const &pLayerSizes,
+            Vec<std::string> const &pActivationFunctionIDs,
+            bool const &pUseAsClassifier,
+            D const &pEta = .1,
+            unsigned int const &pSeed = static_cast<unsigned int>(time(nullptr)),
+            bool const &pUseAdam = false
+        ) :
+        useAsClassifier(pUseAsClassifier),
         eta(pEta),
         step(0),
         i(pLayerSizes[0]) {
@@ -297,20 +302,17 @@ class Classifier {
                 if (layerID < pLayerSizes.size() - 1) {
                     o[o.size() - 1].push_back(1.);
                 }
-                // D
-                // wMin = -5. * sqrt(6. / static_cast<D>(pLayerSizes[layerID] + pLayerSizes[layerID - 1])),
-                // wMax = -wMin;
-                // w.push_back(wMin + (wMax - wMin) * mrnd(pLayerSizes[layerID], pLayerSizes[layerID - 1] + 1));
+
                 D
-                wMin = -1. * sqrt(6. / static_cast<D>(pLayerSizes[layerID] + pLayerSizes[layerID - 1])),
-                wMax = -wMin;
+                wMax = sqrt(6. / static_cast<D>(pLayerSizes[layerID] + pLayerSizes[layerID - 1])),
+                wMin = -wMax;
                 
                 MD
                 wTmp = wMin + (wMax - wMin) * mrnd(pLayerSizes[layerID], pLayerSizes[layerID - 1] + 1);
              
                 D
-                off = .1;
-                alg::fOrOn(wTmp, [off](D &x){return x + (x < 0 ? -off : off);});
+                off = .1 * wMax;
+                alg::fOrOn(wTmp, [off](D &x){return .9 * x + (x < 0 ? -off : off);});
 
                 w.push_back(wTmp);
 
@@ -318,8 +320,11 @@ class Classifier {
                 adamM.push_back(mcnst(pLayerSizes[layerID], pLayerSizes[layerID - 1] + 1, 0.));
 
                 if (layerID == pLayerSizes.size() - 1) {
-                    act.push_back(actSoftmax);
-                    dact.push_back(dActSoftmax);
+                    if (useAsClassifier) {
+                        act.push_back(actSoftmax);
+                    } else {
+                        act.push_back(actSigmoid);
+                    }
                 } else {
                     if (pActivationFunctionIDs[layerID - 1] == "Sigmoid") {                    
                         act.push_back(actSigmoid);
@@ -410,53 +415,6 @@ class Classifier {
             return o[outputLayerID()].size();
         }
 
-        // Classifier
-        // & teach(VD::const_iterator pTargetIter) {
-
-        //     ++step;
-
-        //     SIZE
-        //     layerID = outputLayerID();
-
-        //     dact[layerID](o[layerID].cbegin(), o[layerID].cend(), d[layerID].begin());
-            
-        //     //d[layerID] *= (o[layerID] - pTarget);
-        //     assignMultipliedDifference(d[layerID].begin(), d[layerID].end(), o[layerID].cbegin(), pTargetIter);
-            
-        //     return teach__(layerID);
-        // }
-
-        Classifier
-        & teachTarget(VD::const_iterator const &pTargetBegin) {
-
-            ++step;
-
-            SIZE
-            layerID = outputLayerID(),
-            label = static_cast<SIZE>(std::find(pTargetBegin, pTargetBegin + static_cast<ADDR>(sizeOfOutput()), 1.) - pTargetBegin);
-
-            d[layerID] = o[layerID];
-            d[layerID][label] -= 1;
-            
-            return teach__(layerID);
-        }
-
-        Classifier
-        & teachTarget(VD const &pTarget) {
-
-            return teachTarget(pTarget.cbegin());
-            // ++step;
-
-            // SIZE
-            // layerID = outputLayerID(),
-            // label = (std::find(pTarget.cbegin(), pTarget.cend(), 1.) - pTarget.cbegin());
-
-            // d[layerID] = o[layerID];
-            // d[layerID][label] -= 1;
-            
-            // return teach__(layerID);
-        }
-
         Classifier
         & teachLabel(SIZE const &pLabel) {
 
@@ -467,6 +425,43 @@ class Classifier {
 
             d[layerID] = o[layerID];
             d[layerID][pLabel] -= 1;
+                        
+            return teach__(layerID);
+        }
+
+        Classifier
+        & teachTarget(VD::const_iterator const &pTargetBegin) {
+
+            ++step;
+
+            if (useAsClassifier) {
+
+                SIZE
+                label = static_cast<SIZE>(std::find(pTargetBegin, pTargetBegin + static_cast<ADDR>(sizeOfOutput()), 1.) - pTargetBegin);
+
+                return teachLabel(label);
+            }
+
+            SIZE
+            layerID = outputLayerID();
+
+            d[layerID] = o[layerID] * (1. - o[layerID]) * (o[layerID] - VD(pTargetBegin, pTargetBegin + static_cast<long int>(o[layerID].size())));
+                        
+            return teach__(layerID);
+        }
+
+        Classifier
+        & teachTarget(VD const &pTarget) {
+
+            if (useAsClassifier) {
+
+                return teachTarget(pTarget.cbegin());
+            }
+
+            SIZE
+            layerID = outputLayerID();
+
+            d[layerID] = o[layerID] * (1. - o[layerID]) * (o[layerID] - pTarget);
                         
             return teach__(layerID);
         }
@@ -631,6 +626,26 @@ class Classifier {
                 s += rootMeanSquare(predIt, predItEnd, static_cast<ADDR>(pLabels[sampleID]));
                 predIt = predItEnd;
                 predItEnd += static_cast<ADDR>(sizeOfPrediction);
+            }
+
+            return s;
+        }
+
+        static D
+        rootMeanSquare(VD const &pPredictions, VD const &pTargets, SIZE const &pBatchSize=1) {
+
+            SIZE
+            sizeOfOutput = pPredictions.size() / pBatchSize;
+
+            D
+            s = 0.;
+
+            for (SIZE sampleID = 0; sampleID < pBatchSize; ++sampleID) {
+                VD
+                p(pPredictions.cbegin() + static_cast<ADDR>(sampleID * sizeOfOutput), pPredictions.cbegin() + static_cast<ADDR>((sampleID + 1) * sizeOfOutput)),
+                t(pTargets.cbegin() + static_cast<ADDR>(sampleID * sizeOfOutput), pTargets.cbegin() + static_cast<ADDR>((sampleID + 1) * sizeOfOutput)),
+                v = p - t;
+                s += sqrt(v | v);
             }
 
             return s;
