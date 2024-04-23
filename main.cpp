@@ -5,7 +5,7 @@
 // #include "test2.hpp"
 // #include "test3.hpp"
 // #include "test4.hpp"
-#include "classifier.hpp"
+#include "network.hpp"
 
 using namespace alg;
 
@@ -88,15 +88,15 @@ main() {
         useAdam = true;
 
 
-        std::cout << "Classifiers --------------------------------------------------------------------------------------------------\n";
+        std::cout << "Networks --------------------------------------------------------------------------------------------------\n";
 
-        Classifier
+        Network
         cReLUReLU(layerSizes, {"ReLU",    "ReLU"},    true, eta, seed, useAdam),
         cSigSig(layerSizes,   {"Sigmoid", "Sigmoid"}, true, eta, seed, useAdam),
         cTanhTanh(layerSizes, {"Tanh",    "Tanh"},    true, eta, seed, useAdam);
 
-        // cSigSig.setActivationFunction(0, Classifier::Sigmoid).setActivationFunction(1, Classifier::Sigmoid);
-        // cTanhTanh.setActivationFunction(0, Classifier::Tanh).setActivationFunction(1, Classifier::Tanh);
+        // cSigSig.setActivationFunction(0, Network::Sigmoid).setActivationFunction(1, Network::Sigmoid);
+        // cTanhTanh.setActivationFunction(0, Network::Tanh).setActivationFunction(1, Network::Tanh);
         
 
         Vec<SIZE>
@@ -137,12 +137,12 @@ main() {
                 predLabelsTanh = cTanhTanh.rememberBatchLabels(patternsFlat);
 
                 std::cout << "loop: " << std::setw(1 + static_cast<int>(log10(maxLoops))) << loop + 1 << std::endl
-                << "   rmsReLU:    " << Classifier::rootMeanSquare(predTargetsReLU, labels)
-                << "   ceReLU:     " << Classifier::crossEntropy(predTargetsReLU, labels)  << std::endl
-                << "   rmsSigmoid: " << Classifier::rootMeanSquare(predTargetsSig, labels)
-                << "   ceSigmoid:  " << Classifier::crossEntropy(predTargetsSig, labels)  << std::endl
-                << "   rmsTanh:    " << Classifier::rootMeanSquare(predTargetsTanh, labels)
-                << "   ceTanh:     " << Classifier::crossEntropy(predTargetsTanh, labels)
+                << "   rmsReLU:    " << Network::rootMeanSquare(predTargetsReLU, labels)
+                << "   ceReLU:     " << Network::crossEntropy(predTargetsReLU, labels)  << std::endl
+                << "   rmsSigmoid: " << Network::rootMeanSquare(predTargetsSig, labels)
+                << "   ceSigmoid:  " << Network::crossEntropy(predTargetsSig, labels)  << std::endl
+                << "   rmsTanh:    " << Network::rootMeanSquare(predTargetsTanh, labels)
+                << "   ceTanh:     " << Network::crossEntropy(predTargetsTanh, labels)
                 << std::endl;
         
                 auto
@@ -193,7 +193,7 @@ main() {
         eta  = .1;
         
         bool const
-        dontUseAsClassifier = false,
+        dontUseAsNetwork = false,
         useAdam = true;
 
         std::cout << "MLP --------------------------------------------------------------------------------------------\n";
@@ -210,8 +210,8 @@ main() {
         Vec<SIZE>
         layerSizes {2, 3, targets[0].size()};
 
-        Classifier
-        mlp(layerSizes, {"Tanh"}, dontUseAsClassifier, eta, seed, useAdam);
+        Network
+        mlp(layerSizes, {"Tanh"}, dontUseAsNetwork, eta, seed, useAdam);
 
         Vec<SIZE>
         idx(patterns.size());
@@ -242,7 +242,7 @@ main() {
                 predTargetsMLP = mlp.rememberBatchTargets(patternsFlat);
 
                 std::cout << "loop: " << std::setw(1 + static_cast<int>(log10(maxLoops))) << loop + 1 << std::endl
-                << "   mlp:    " << Classifier::rootMeanSquare(predTargetsMLP, targetsFlat, patterns.size()) << std::endl;
+                << "   mlp:    " << Network::rootMeanSquare(predTargetsMLP, targetsFlat, patterns.size()) << std::endl;
         
                 auto
                 predItMLP = predTargetsMLP.cbegin();

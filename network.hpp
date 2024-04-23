@@ -1,5 +1,5 @@
-#ifndef CLASSIFIER_HPP
-#define CLASSIFIER_HPP
+#ifndef NETWORK_HPP
+#define NETWORK_HPP
 
 #include "../AlgebraWithSTL/algebra.hpp"
 #include <functional>
@@ -52,14 +52,14 @@ using namespace alg;
 
 
 
-class Classifier {
+class Network {
 
     typedef std::function<void(VD::const_iterator, VD::const_iterator, VD::iterator)> ACTIVATIONFUNCTION;
     typedef long int ADDR;
     
     private:
 
-        Classifier
+        Network
         &presentInput(VD::const_iterator pInputBegin) {
             auto
             iIt = i.begin();
@@ -69,7 +69,7 @@ class Classifier {
             return *this;
         }
 
-        Classifier
+        Network
         &presentInput(VD const &pInput) {
             return presentInput(pInput.cbegin());
         }
@@ -113,7 +113,7 @@ class Classifier {
             }        
         }
 
-        Classifier
+        Network
         & teach__(SIZE pLayerID) {
 
             while (0 < pLayerID) {
@@ -241,7 +241,7 @@ class Classifier {
     private:
 
         bool
-        useAsClassifier;
+        useAsNetwork;
 
     public:
 
@@ -281,15 +281,15 @@ class Classifier {
 
     public:
 
-        Classifier(
+        Network(
             Vec<SIZE> const &pLayerSizes,
             Vec<std::string> const &pActivationFunctionIDs,
-            bool const &pUseAsClassifier,
+            bool const &pUseAsNetwork,
             D const &pEta = .1,
             unsigned int const &pSeed = static_cast<unsigned int>(time(nullptr)),
             bool const &pUseAdam = false
         ) :
-        useAsClassifier(pUseAsClassifier),
+        useAsNetwork(pUseAsNetwork),
         eta(pEta),
         step(0),
         i(pLayerSizes[0]) {
@@ -320,7 +320,7 @@ class Classifier {
                 adamM.push_back(mcnst(pLayerSizes[layerID], pLayerSizes[layerID - 1] + 1, 0.));
 
                 if (layerID == pLayerSizes.size() - 1) {
-                    if (useAsClassifier) {
+                    if (useAsNetwork) {
                         act.push_back(actSoftmax);
                     } else {
                         act.push_back(actSigmoid);
@@ -343,11 +343,11 @@ class Classifier {
             adamBeta2 = .999;
         }
 
-        ~Classifier() {
+        ~Network() {
 
         }
 
-        Classifier
+        Network
         & remember() {
 
             SIZE
@@ -366,7 +366,7 @@ class Classifier {
             return *this;
         }
 
-        Classifier
+        Network
         & remember(VD const &pInput) {
 
             presentInput(pInput);
@@ -374,7 +374,7 @@ class Classifier {
             return remember();
         }
 
-        Classifier
+        Network
         & remember(VD::const_iterator pInputBegin) {
 
             presentInput(pInputBegin);
@@ -382,7 +382,7 @@ class Classifier {
             return remember();
         }
 
-        Classifier
+        Network
         & setActivationFunction(SIZE const &pLayer, std::string const &pActivationFunctionID) {
 
             if (pLayer < act.size() - 1) {
@@ -415,7 +415,7 @@ class Classifier {
             return o[outputLayerID()].size();
         }
 
-        Classifier
+        Network
         & teachLabel(SIZE const &pLabel) {
 
             ++ step;
@@ -429,12 +429,12 @@ class Classifier {
             return teach__(layerID);
         }
 
-        Classifier
+        Network
         & teachTarget(VD::const_iterator const &pTargetBegin) {
 
             ++step;
 
-            if (useAsClassifier) {
+            if (useAsNetwork) {
 
                 SIZE
                 label = static_cast<SIZE>(std::find(pTargetBegin, pTargetBegin + static_cast<ADDR>(sizeOfOutput()), 1.) - pTargetBegin);
@@ -450,10 +450,10 @@ class Classifier {
             return teach__(layerID);
         }
 
-        Classifier
+        Network
         & teachTarget(VD const &pTarget) {
 
-            if (useAsClassifier) {
+            if (useAsNetwork) {
 
                 return teachTarget(pTarget.cbegin());
             }
@@ -466,7 +466,7 @@ class Classifier {
             return teach__(layerID);
         }
 
-        Classifier
+        Network
         & teachBatchTargets(VD const &pPatterns, VD const &pTargets) {
 
             SIZE 
@@ -492,7 +492,7 @@ class Classifier {
             return *this;
         }
 
-        Classifier
+        Network
         & teachBatchLabels(VD const &pPatterns, Vec<SIZE> const &pLabels) {
             SIZE 
             batchStep = step;
@@ -709,7 +709,7 @@ class Classifier {
         //     return s;
         // }
 
-        // Classifier
+        // Network
         // & printStatus(MD const &pPatterns, MD const &pTargets, int const &pDigits = 2) {
 
         //     MD
@@ -726,7 +726,7 @@ class Classifier {
         //     return *this;
         // }
 
-        // Classifier
+        // Network
         // & printStatus(VD const &pPatterns, Vec<SIZE> const &pLabels, int const &pDigits = 2) {
 
         //     SIZE
@@ -756,4 +756,4 @@ class Classifier {
         }
 };
 
-#endif // CLASSIFIER_HPP
+#endif // NETWORK_HPP
