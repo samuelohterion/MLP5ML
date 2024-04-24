@@ -635,7 +635,7 @@ class Network {
             << "adamBeta2:           " << adamBeta2 << std::endl
             << "step:                " << step << std::endl
             << "weights:" << std::endl
-            << std::setprecision(17) << w << std::endl;
+            << w << std::endl;
             
             ofs.close();
 

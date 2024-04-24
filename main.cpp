@@ -69,7 +69,6 @@ main() {
             0
         };
 
-
         SIZE
         loop,
         maxLoops      = 5e2,
@@ -169,9 +168,13 @@ main() {
             }
         }
 
+        int
+        pTmp = alg::precision;
+        alg::precision = 17;
         cReLUReLU.save("ReLU-ReLU-Softmax");
         cSigSig.save("Sigmoid-Sigmoid-Softmax");
         cTanhTanh.save("Tanh-Tanh-Softmax");
+        alg::precision = pTmp;
     }
 
     {
@@ -263,9 +266,14 @@ main() {
                 std::cout << std::endl;
             }
 
+            int
+            pTmp = alg::precision;
+            alg::precision = 17;
             mlp.save("mlp");
+            alg::precision = pTmp;
         }
 
+        std::cout << "Load Network --------------------------------------------------------------------------------------\n";
 
         Network
         nw;
