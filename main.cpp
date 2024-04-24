@@ -268,7 +268,7 @@ main() {
 
             int
             pTmp = alg::precision;
-            alg::precision = 17;
+            alg::precision = 54;
             mlp.save("mlp");
             alg::precision = pTmp;
         }
@@ -284,7 +284,7 @@ main() {
         predTargetsMLP = nw.rememberBatchTargets(patternsFlat);
 
         std::cout << "loop: " << std::setw(1 + static_cast<int>(log10(maxLoops))) << loop << std::endl
-        << "   mlp:    " << Network::rootMeanSquare(predTargetsMLP, targetsFlat, patterns.size()) << std::endl;
+        << "   net:    " << Network::rootMeanSquare(predTargetsMLP, targetsFlat, patterns.size()) << std::endl;
 
         auto
         predItMLP = predTargetsMLP.cbegin();

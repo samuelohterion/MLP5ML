@@ -283,8 +283,87 @@ class Network {
             bool const &pUseAdam = false,
             D const &pAdamBeta1 = .9,
             D const &pAdamBeta2 = .999,
-            SIZE const &pStep = 0,
-            Tsr<D> const &pWeights = Tsr<D>(0)
+            SIZE const &pStep = 0
+        ) {
+            useAsClassifier = pUseAsClassifier;
+            useAdam = pUseAdam;
+            adamBeta1 = pAdamBeta1;
+            adamBeta2 = pAdamBeta2;
+            activationFunctionsStrings = pActivationFunctionsStrings;
+            step = pStep,
+            i = VD(pLayerSizes[0]);
+            i.push_back(1.);
+            eta = pEta;
+            srand(pSeed);
+            d.clear();
+            n.clear();
+            o.clear();
+            w.clear();
+            act.clear();
+            dact.clear();
+            adamV.clear();
+            adamM.clear();
+                
+            for (SIZE layerID = 1; layerID < pLayerSizes.size(); ++layerID) {
+                d.push_back(VD(pLayerSizes[layerID]));
+                n.push_back(VD(pLayerSizes[layerID]));
+                o.push_back(VD(pLayerSizes[layerID]));
+                if (layerID < pLayerSizes.size() - 1) {
+                    o[o.size() - 1].push_back(1.);
+                }
+
+                D
+                wMax = sqrt(6. / static_cast<D>(pLayerSizes[layerID] + pLayerSizes[layerID - 1])),
+                wMin = -wMax;
+                
+                MD
+                wTmp = wMin + (wMax - wMin) * mrnd(pLayerSizes[layerID], pLayerSizes[layerID - 1] + 1);
+            
+                D
+                off = .1 * wMax;
+                alg::fOrOn(wTmp, [off](D &x){return .9 * x + (x < 0 ? -off : off);});
+
+                w.push_back(wTmp);
+                
+                if (useAdam) {
+                    adamV.push_back(mcnst(pLayerSizes[layerID], pLayerSizes[layerID - 1] + 1, 0.));
+                    adamM.push_back(mcnst(pLayerSizes[layerID], pLayerSizes[layerID - 1] + 1, 0.));
+                }
+                if (layerID == pLayerSizes.size() - 1) {
+                    if (useAsClassifier) {
+                        act.push_back(actSoftmax);
+                    } else {
+                        act.push_back(actSigmoid);
+                    }
+                } else {
+                    if (pActivationFunctionsStrings[layerID - 1] == "Sigmoid") {                    
+                        act.push_back(actSigmoid);
+                        dact.push_back(dActSigmoid);
+                    } else if (pActivationFunctionsStrings[layerID - 1] == "Tanh") {
+                        act.push_back(actTanh);
+                        dact.push_back(dActTanh);
+                    } else {
+                        act.push_back(actReLU);
+                        dact.push_back(dActReLU);
+                    }
+                }
+            }
+
+            return *this;
+        }
+
+        Network
+        & config(
+            Tsr<D> const &pWeights,
+            Vec<SIZE> const &pLayerSizes,
+            Vec<std::string> const &pActivationFunctionsStrings,
+            bool const &pUseAsClassifier,
+            D const &pEta = .1,
+            unsigned int const &pSeed = static_cast<unsigned int>(time(nullptr)),
+            bool const &pUseAdam = false,
+            D const &pAdamBeta1 = .9,
+            D const &pAdamBeta2 = .999,
+            SIZE const &pStep = 0
         ) {
             useAsClassifier = pUseAsClassifier;
             useAdam = pUseAdam;
@@ -331,9 +410,11 @@ class Network {
                     w = pWeights;
                 }
 
-                adamV.push_back(mcnst(pLayerSizes[layerID], pLayerSizes[layerID - 1] + 1, 0.));
-                adamM.push_back(mcnst(pLayerSizes[layerID], pLayerSizes[layerID - 1] + 1, 0.));
-
+                if (useAdam) {
+                    adamV.push_back(mcnst(pLayerSizes[layerID], pLayerSizes[layerID - 1] + 1, 0.));
+                    adamM.push_back(mcnst(pLayerSizes[layerID], pLayerSizes[layerID - 1] + 1, 0.));
+                }
+                
                 if (layerID == pLayerSizes.size() - 1) {
                     if (useAsClassifier) {
                         act.push_back(actSoftmax);
@@ -611,7 +692,7 @@ class Network {
 
             ifs.close();
 
-            config(locLayerSizes, locActivationFunctionNames, locUseAsClassifier, locEta, 0, locUseAdam, locAdamBeta1, locAdamBeta2, locStep, locWeights);
+            config(locWeights, locLayerSizes, locActivationFunctionNames, locUseAsClassifier, locEta, 0, locUseAdam, locAdamBeta1, locAdamBeta2, locStep);
 
             return *this;
         }
