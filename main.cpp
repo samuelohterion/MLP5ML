@@ -273,34 +273,63 @@ main() {
             alg::precision = pTmp;
         }
 
-        std::cout << "Load Network --------------------------------------------------------------------------------------\n";
+        {        
+            std::cout << "Load Network --------------------------------------------------------------------------------------\n";
 
-        Network
-        nw;
+            mlp;
 
-        nw.load("mlp");
+            mlp.load("mlp");
 
-        VD
-        predTargetsMLP = nw.rememberBatchTargets(patternsFlat);
+            VD
+            predTargetsMLP = mlp.rememberBatchTargets(patternsFlat);
 
-        std::cout << "loop: " << std::setw(1 + static_cast<int>(log10(maxLoops))) << loop << std::endl
-        << "   net:    " << Network::rootMeanSquare(predTargetsMLP, targetsFlat, patterns.size()) << std::endl;
+            std::cout << "loop: " << std::setw(1 + static_cast<int>(log10(maxLoops))) << loop << std::endl
+            << "   net:    " << Network::rootMeanSquare(predTargetsMLP, targetsFlat, patterns.size()) << std::endl;
 
-        auto
-        predItMLP = predTargetsMLP.cbegin();
+            auto
+            predItMLP = predTargetsMLP.cbegin();
 
-        for (SIZE sampleID = 0; sampleID < patterns.size(); ++sampleID) {
-            
-            std::cout 
-            << "i[" << vec2Str(VD(patterns[sampleID].cbegin(), patterns[sampleID].cend()), 2) 
-            << "]   t[  " << targets[sampleID] 
-            << "]   p[" << vec2Str(round(VD(predItMLP, predItMLP + static_cast<long int>(mlp.sizeOfOutput())), 2), 5)
-            << "]" << std::endl;
-            predItMLP += static_cast<long int>(mlp.sizeOfOutput());
+            for (SIZE sampleID = 0; sampleID < patterns.size(); ++sampleID) {
+                
+                std::cout 
+                << "i[" << vec2Str(VD(patterns[sampleID].cbegin(), patterns[sampleID].cend()), 2) 
+                << "]   t[  " << targets[sampleID] 
+                << "]   p[" << vec2Str(round(VD(predItMLP, predItMLP + static_cast<long int>(mlp.sizeOfOutput())), 2), 5)
+                << "]" << std::endl;
+                predItMLP += static_cast<long int>(mlp.sizeOfOutput());
+            }
+            std::cout << std::endl;
+
         }
-        std::cout << std::endl;
+        
+        {
+            std::cout << "Load Network --------------------------------------------------------------------------------------\n";
 
+            Network
+            nw;
+
+            nw.load("mlp");
+
+            VD
+            predTargetsMLP = nw.rememberBatchTargets(patternsFlat);
+
+            std::cout << "loop: " << std::setw(1 + static_cast<int>(log10(maxLoops))) << loop << std::endl
+            << "   net:    " << Network::rootMeanSquare(predTargetsMLP, targetsFlat, patterns.size()) << std::endl;
+
+            auto
+            predItMLP = predTargetsMLP.cbegin();
+
+            for (SIZE sampleID = 0; sampleID < patterns.size(); ++sampleID) {
+                
+                std::cout 
+                << "i[" << vec2Str(VD(patterns[sampleID].cbegin(), patterns[sampleID].cend()), 2) 
+                << "]   t[  " << targets[sampleID] 
+                << "]   p[" << vec2Str(round(VD(predItMLP, predItMLP + static_cast<long int>(mlp.sizeOfOutput())), 2), 5)
+                << "]" << std::endl;
+                predItMLP += static_cast<long int>(mlp.sizeOfOutput());
+            }
+            std::cout << std::endl;
+        }
     }
-
     return 0;
 }
